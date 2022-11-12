@@ -1,0 +1,135 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <title></title>
+  <script type="text/javascript">
+    //sometimes makes you lose even when you typed in a letter that's in the word
+    //doesn't show all instances of the letter when the word contains more than one of the letter you entered. showed the second instance.
+    var mask;
+    var usedletters;
+    var ctx;
+    var tds;
+    function newword()
+    {
+      usedletters = "";
+      var request = new XMLHttpRequest();
+      request.open('GET', '/do.py?function=getwordlen', false);  // `false` makes the request synchronous
+      request.send(null);
+      if (request.status === 200)
+      {
+        var wordlen = parseInt(request.responseText);
+        var tbl = document.getElementById("word");
+        tbl.innerHTML = "<tr>" + "<td></td>".repeat(wordlen) + "</tr>";
+        tds = tbl.getElementsByTagName("td");
+        for (i = 0; i < wordlen; i++)
+        {
+          tds[i].innerHTML = "_";
+        }
+        mask = "_".repeat(wordlen);
+      }
+      var trollface = document.getElementById("trollface");
+      var c = document.getElementById("canvas");
+      ctx = c.getContext("2d");
+      ctx.lineWidth = 2;
+      ctx.moveTo(200, 198);
+      ctx.lineTo(120, 198);
+      ctx.moveTo(160, 198);
+      ctx.lineTo(160, 20);
+      ctx.lineTo(80, 20);
+      ctx.lineTo(80, 60);
+      ctx.stroke();
+    }
+    window.onload = newword;
+    document.onkeypress = function (e)
+    {
+      e = e || window.event;
+      var k = String.fromCharCode(e.keyCode).toUpperCase();
+      console.log(k);
+      if (k >= "A" && k <= "Z" && usedletters.search(k) == -1 && mask.search("_") != -1)
+      {
+        var request = new XMLHttpRequest();
+        console.log('mask:' + mask)
+        console.log('usedletters:' + usedletters)
+        request.open('GET', '/do.py?function=getpositions&mask=' + mask + '&usedletters=' + usedletters + '&letter=' + k, false);  // `false` makes the request synchronous
+        request.send(null);
+        if (request.status === 200)
+        {
+          var r = request.responseText.substring(0, request.responseText.length - 2);
+          console.log(r);
+          console.log(r.length)
+          if (r.startsWith('word:'))
+          {
+            usedletters += k;
+            switch (usedletters.length)
+            {
+              case 1:
+                ctx.drawImage(trollface, 70, 60, 20, 20);
+                break;
+              case 2:
+                ctx.moveTo(80, 80);
+                ctx.lineTo(80, 130);
+                ctx.stroke();
+                break;
+              case 3:
+                ctx.lineTo(90, 170);
+                ctx.stroke();
+                break;
+              case 4:
+                ctx.moveTo(80, 130);
+                ctx.lineTo(70, 170);
+                ctx.stroke();
+                break;
+              case 5:
+                ctx.moveTo(80, 90);
+                ctx.lineTo(95, 105);
+                ctx.stroke();
+                break;
+              case 6:
+                ctx.moveTo(80, 90);
+                ctx.lineTo(65, 105);
+                ctx.stroke();
+                ctx.closePath();
+                ctx.beginPath();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = "#FF0000"
+                ctx.moveTo(0, 0);
+                ctx.lineTo(200, 200);
+                ctx.moveTo(0, 200);
+                ctx.lineTo(200, 0);
+                ctx.stroke();
+                word = r.substring(5);
+                for (i = 0; i < word.length; i++)
+                {
+                  tds[i].innerHTML = word.charAt(i);
+                }
+                break;
+            }
+          }
+          else
+          {
+            var positionsstr = r.split(",");
+            for (i = 0; i < positionsstr.length; i++)
+            {
+              position = parseInt(positionsstr[i]);
+              mask = mask.substring(0, position) + k + mask.substring(position + 1);
+              tds[position].innerHTML = k;
+            }
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body>
+  <img id="trollface" src="/Aufkleber_Trollface2.jpg" style="display: none;" />
+  <div align="center">
+    <span style="display:inline-block; width: 200px; height:200px;">
+      <canvas id="canvas" height="200" width="200" />
+    </span>
+    <br />
+    <table id="word" style="font-size: 200%; font-family: monospcae"></table>
+  </div>
+</body>
+</html>
